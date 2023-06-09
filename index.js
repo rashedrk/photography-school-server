@@ -27,7 +27,7 @@ async function run() {
         await client.connect();
 
         const classesCollection = client.db("ClickMasterSchool").collection("classes")
-
+        const instructorsCollection = client.db("ClickMasterSchool").collection("instructors")
         // get all class data
         app.get('/classes', async(req, res) => {
             const result = await classesCollection.find().toArray();
@@ -41,8 +41,13 @@ async function run() {
             res.send(result)
         })
 
+        //get all instructor data
+        app.get('/instructors', async(req,res) => {
+            const result = await instructorsCollection.find().toArray();
+            res.send(result);
+        })
 
-
+        
 
 
 
