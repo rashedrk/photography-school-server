@@ -34,7 +34,12 @@ async function run() {
             res.send(result)
         })
 
-        
+        //get top 6 class data based on enrolled number
+        app.get('/classes/top', async(req,res) => {
+            const sort= {enrolled : -1};
+            const result = await classesCollection.find().sort(sort).limit(6).toArray();
+            res.send(result)
+        })
 
 
 
