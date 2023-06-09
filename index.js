@@ -47,7 +47,11 @@ async function run() {
             res.send(result);
         })
 
-        
+        //get top 6 six instructor data
+        app.get('/instructors/top', async(req,res) => {
+            const result = await instructorsCollection.find().limit(6).toArray();
+            res.send(result)
+        })
 
 
 
