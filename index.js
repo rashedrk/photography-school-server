@@ -56,9 +56,12 @@ async function run() {
             res.send({token});
         })
 
+        //collections in database
         const classesCollection = client.db("ClickMasterSchool").collection("classes");
         const instructorsCollection = client.db("ClickMasterSchool").collection("instructors");
         const usersCollection = client.db("ClickMasterSchool").collection("users");
+        const cartsCollection = client.db("ClickMasterSchool").collection("carts");
+
 
         /*--------------------
         user data related apis
@@ -114,8 +117,30 @@ async function run() {
         /*--------------------
         cart data related apis
         ---------------------*/
+
+        //add cart item
+        app.post('/carts', async(req,res) => {
+            const item = req.body;
+            const result = await cartsCollection.insertOne(item);
+            res.send(result);
+        })
+
         //get carts item
-        app.get('/carts')
+        app.get('/carts', verifyJWT, async(req, res) => {
+            const email = req.query.email;
+            if(!email){
+                res.send([]);
+            }
+            const decodedEmail = req.decoded.email;
+            //check for api req user is valid user
+            if (decodedEmail !== email) {
+                res.status(403).send({error: true, message: "Forbidden access"})
+            }
+            //find cart items and send
+            const query = {email: email};
+            const result = await cartsCollection.find(query).toArray();
+            res.send(result);
+        })
 
 
 
