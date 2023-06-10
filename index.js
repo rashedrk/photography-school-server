@@ -12,13 +12,13 @@ app.use(express.json());
 
 // verify access using jwt
 const verifyJWT = (req,res,next) => {
-    const authorization = req.headers.Authorization;
+    const authorization = req.headers.authorization;
     //send error msg if no authorization token 
     if (!authorization) {
         return res.status(401).send({error: true, message: 'unauthorized access'});
     }
     //get the access token
-    const token = authorization.split(' ');
+    const token = authorization.split(' ')[1];
 
     //verify token with jwt 
     jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
