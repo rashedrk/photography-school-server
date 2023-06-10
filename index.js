@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 const app = express();
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 3000;
 const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
@@ -8,6 +9,11 @@ require('dotenv').config();
 // middle Ware
 app.use(cors());
 app.use(express.json());
+
+//verify access using jwt
+// const verifyJWT = (req,res,next) => {
+//     const authorization = 
+// }
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qrkrfrq.mongodb.net/?retryWrites=true&w=majority`;
@@ -35,6 +41,28 @@ async function run() {
 
         const classesCollection = client.db("ClickMasterSchool").collection("classes");
         const instructorsCollection = client.db("ClickMasterSchool").collection("instructors");
+        const usersCollection = client.db("ClickMasterSchool").collection("users");
+
+        /*--------------------
+        user data related apis
+        ---------------------*/
+
+        //add user info
+        app.post('/users', async(req, res) => {
+            const user = req.body;
+            const query = {email: user.email};
+            const existingUser = await usersCollection.findOne(query);
+            if (existingUser) {
+                return res.send({message: 'user already exists'})
+            }
+            const result = await usersCollection.insertOne(user);
+            res.send(result);
+        })
+
+
+        /*--------------------
+        class data related apis
+        ---------------------*/
 
         // get all class data
         app.get('/classes', async(req, res) => {
@@ -49,6 +77,10 @@ async function run() {
             res.send(result)
         })
 
+        /*--------------------
+        Instructors data related apis
+        ---------------------*/
+
         //get all instructor data
         app.get('/instructors', async(req,res) => {
             const result = await instructorsCollection.find().toArray();
@@ -61,6 +93,9 @@ async function run() {
             res.send(result)
         })
 
+        /*--------------------
+        cart data related apis
+        ---------------------*/
         //get carts item
         app.get('/carts')
 
