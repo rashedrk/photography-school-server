@@ -10,10 +10,27 @@ require('dotenv').config();
 app.use(cors());
 app.use(express.json());
 
-//verify access using jwt
-// const verifyJWT = (req,res,next) => {
-//     const authorization = 
-// }
+// verify access using jwt
+const verifyJWT = (req,res,next) => {
+    const authorization = req.headers.Authorization;
+    //send error msg if no authorization token 
+    if (!authorization) {
+        return res.status(401).send({error: true, message: 'unauthorized access'});
+    }
+    //get the access token
+    const token = authorization.split(' ');
+
+    //verify token with jwt 
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        // send error if token is no valid 
+        if (err) {
+            return res.status(401).send({error: true, message: 'unauthorized access'});
+        }
+        // the request information decoded and it put to req and send to next 
+        req.decoded = decoded;
+        next();
+    });
+}
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qrkrfrq.mongodb.net/?retryWrites=true&w=majority`;
@@ -59,6 +76,7 @@ async function run() {
             res.send(result);
         })
 
+        
 
         /*--------------------
         class data related apis
