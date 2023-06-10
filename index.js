@@ -26,8 +26,16 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
 
-        const classesCollection = client.db("ClickMasterSchool").collection("classes")
-        const instructorsCollection = client.db("ClickMasterSchool").collection("instructors")
+        //jwt
+        app.post('/jwt', (req,res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+            res.send({token});
+        })
+
+        const classesCollection = client.db("ClickMasterSchool").collection("classes");
+        const instructorsCollection = client.db("ClickMasterSchool").collection("instructors");
+
         // get all class data
         app.get('/classes', async(req, res) => {
             const result = await classesCollection.find().toArray();
@@ -53,6 +61,8 @@ async function run() {
             res.send(result)
         })
 
+        //get carts item
+        app.get('/carts')
 
 
 
