@@ -3,7 +3,7 @@ const cors = require('cors');
 const app = express();
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 3000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 
 // middle Ware
@@ -11,11 +11,11 @@ app.use(cors());
 app.use(express.json());
 
 // verify access using jwt
-const verifyJWT = (req,res,next) => {
+const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
     //send error msg if no authorization token 
     if (!authorization) {
-        return res.status(401).send({error: true, message: 'unauthorized access'});
+        return res.status(401).send({ error: true, message: 'unauthorized access' });
     }
     //get the access token
     const token = authorization.split(' ')[1];
@@ -24,7 +24,7 @@ const verifyJWT = (req,res,next) => {
     jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
         // send error if token is no valid 
         if (err) {
-            return res.status(401).send({error: true, message: 'unauthorized access'});
+            return res.status(401).send({ error: true, message: 'unauthorized access' });
         }
         // the request information decoded and it put to req and send to next 
         req.decoded = decoded;
@@ -32,6 +32,20 @@ const verifyJWT = (req,res,next) => {
     });
 }
 
+//verify User email
+const verifyUser = (req, res, next) => {
+    const email = req.query.email;
+    if (!email) {
+        res.send([]);
+    }
+    const decodedEmail = req.decoded.email;
+    //check for api req user is valid user
+    if (decodedEmail !== email) {
+        res.status(403).send({ error: true, message: "Forbidden access" })
+    }
+    req.email = email;
+    next()
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qrkrfrq.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -50,17 +64,17 @@ async function run() {
         await client.connect();
 
         //jwt
-        app.post('/jwt', (req,res) => {
+        app.post('/jwt', (req, res) => {
             const user = req.body;
             const token = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
-            res.send({token});
+            res.send({ token });
         })
 
         //collections in database
         const classesCollection = client.db("ClickMasterSchool").collection("classes");
         const instructorsCollection = client.db("ClickMasterSchool").collection("instructors");
         const usersCollection = client.db("ClickMasterSchool").collection("users");
-        const cartsCollection = client.db("ClickMasterSchool").collection("carts");
+        const selectedClassCollection = client.db("ClickMasterSchool").collection("selectedClasses");
 
 
         /*--------------------
@@ -68,32 +82,36 @@ async function run() {
         ---------------------*/
 
         //add user info
-        app.post('/users', async(req, res) => {
+        app.post('/users', async (req, res) => {
             const user = req.body;
-            const query = {email: user.email};
+            const query = { email: user.email };
             const existingUser = await usersCollection.findOne(query);
             if (existingUser) {
-                return res.send({message: 'user already exists'})
+                return res.send({ message: 'user already exists' })
             }
             const result = await usersCollection.insertOne(user);
             res.send(result);
         })
 
-        
+        //get all user data 
+        app.get('/users', verifyJWT, async(req, res) => {
+            const result = await usersCollection.find().toArray();
+            res.send(result);
+        })
 
         /*--------------------
         class data related apis
         ---------------------*/
 
         // get all class data
-        app.get('/classes', async(req, res) => {
+        app.get('/classes', async (req, res) => {
             const result = await classesCollection.find().toArray();
             res.send(result)
         })
 
         //get top 6 class data based on enrolled number
-        app.get('/classes/top', async(req,res) => {
-            const sort= {enrolled : -1};
+        app.get('/classes/top', async (req, res) => {
+            const sort = { enrolled: -1 };
             const result = await classesCollection.find().sort(sort).limit(6).toArray();
             res.send(result)
         })
@@ -103,44 +121,46 @@ async function run() {
         ---------------------*/
 
         //get all instructor data
-        app.get('/instructors', async(req,res) => {
+        app.get('/instructors', async (req, res) => {
             const result = await instructorsCollection.find().toArray();
             res.send(result);
         })
 
         //get top 6 six instructor data
-        app.get('/instructors/top', async(req,res) => {
+        app.get('/instructors/top', async (req, res) => {
             const result = await instructorsCollection.find().limit(6).toArray();
             res.send(result)
         })
 
         /*--------------------
-        cart data related apis
+        selected class / cart data related apis
+        Students
         ---------------------*/
 
-        //add cart item
-        app.post('/carts', async(req,res) => {
+        //add selected class item for student dashboard
+        app.post('/classes/selected', async (req, res) => {
             const item = req.body;
-            const result = await cartsCollection.insertOne(item);
+            const result = await selectedClassCollection.insertOne(item);
             res.send(result);
         })
 
-        //get carts item
-        app.get('/carts', verifyJWT, async(req, res) => {
-            const email = req.query.email;
-            if(!email){
-                res.send([]);
-            }
-            const decodedEmail = req.decoded.email;
-            //check for api req user is valid user
-            if (decodedEmail !== email) {
-                res.status(403).send({error: true, message: "Forbidden access"})
-            }
-            //find cart items and send
-            const query = {email: email};
-            const result = await cartsCollection.find(query).toArray();
+        //get selected class item
+        app.get('/classes/selected', verifyJWT, verifyUser, async (req, res) => {
+            const query = { email: req.email }; // sending req.email from verifyUser
+            const result = await selectedClassCollection.find(query).toArray();
             res.send(result);
         })
+
+        // delete selected class item
+        app.delete('/classes/selected/:id', verifyJWT, verifyUser, async (req, res) => {
+            const id = req.params.id;
+            const query = {_id: new ObjectId(id)};
+            const result = await selectedClassCollection.deleteOne(query);
+            res.send(result);
+        })
+
+
+
 
 
 
