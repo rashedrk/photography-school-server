@@ -94,8 +94,21 @@ async function run() {
         })
 
         //get all user data 
-        app.get('/users', verifyJWT, async(req, res) => {
+        app.get('/users', verifyJWT, async (req, res) => {
             const result = await usersCollection.find().toArray();
+            res.send(result);
+        })
+
+        //update user role
+        app.patch('/users', verifyJWT, async (req, res) => {
+            const { email, role } = req.body;
+            const filter = { email: email };
+            const updateRole = {
+                $set: {
+                    role: role
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updateRole);
             res.send(result);
         })
 
@@ -154,7 +167,7 @@ async function run() {
         // delete selected class item
         app.delete('/classes/selected/:id', verifyJWT, verifyUser, async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await selectedClassCollection.deleteOne(query);
             res.send(result);
         })
