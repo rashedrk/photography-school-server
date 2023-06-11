@@ -143,7 +143,18 @@ async function run() {
             res.send(result);
         })
 
-        
+        //set class status
+        app.patch('/classes',verifyJWT, async( req, res) => {
+            const {status, id} = req.body;
+            const filter = { _id: id };
+            const updateStatus = {
+                $set: {
+                    status: status
+                }
+            }
+            const result = await classesCollection.updateOne(filter, updateStatus);
+            res.send(result);
+        })
 
         /*--------------------
         Instructors data related apis
