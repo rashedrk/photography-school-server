@@ -129,6 +129,22 @@ async function run() {
             res.send(result)
         })
 
+        //send feedback
+        app.patch('/classes', verifyJWT, async (req, res) => {
+            const {feedback, id} = req.body;
+            const filter = { _id: id };
+            const updateFeedback = {
+                $set: {
+                    feedback: feedback
+                }
+            }
+            const options = { upsert: true };
+            const result = await classesCollection.updateOne(filter, updateFeedback,options);
+            res.send(result);
+        })
+
+        
+
         /*--------------------
         Instructors data related apis
         ---------------------*/
