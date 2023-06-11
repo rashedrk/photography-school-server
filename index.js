@@ -116,6 +116,13 @@ async function run() {
         class data related apis
         ---------------------*/
 
+        //add new class
+        app.post('/classes', verifyJWT, async(req, res) => {
+            const newClass = req.body;
+            const result = await classesCollection.insertOne(newClass);
+            res.send(result);
+        })
+
         // get all class data
         app.get('/classes', async (req, res) => {
             const result = await classesCollection.find().toArray();
@@ -132,21 +139,21 @@ async function run() {
         //send feedback
         app.patch('/classes', verifyJWT, async (req, res) => {
             const {feedback, id} = req.body;
-            const filter = { _id: id };
+            const filter = { _id: new ObjectId(id) };
             const updateFeedback = {
                 $set: {
                     feedback: feedback
                 }
             }
-            const options = { upsert: true };
-            const result = await classesCollection.updateOne(filter, updateFeedback,options);
+            
+            const result = await classesCollection.updateOne(filter, updateFeedback);
             res.send(result);
         })
 
         //set class status
-        app.patch('/classes',verifyJWT, async( req, res) => {
+        app.patch('/classes/status',verifyJWT, async( req, res) => {
             const {status, id} = req.body;
-            const filter = { _id: id };
+            const filter = { _id: new ObjectId(id) };
             const updateStatus = {
                 $set: {
                     status: status
