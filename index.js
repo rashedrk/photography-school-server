@@ -124,6 +124,20 @@ async function run() {
             res.send(result);
         })
 
+        //get user role
+        app.get('/users/role/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                return res.send({ error: true, message: 'forbidden access' })
+            }
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result =user?.role;
+            res.send(result);
+        })
+
+
         /*--------------------
         class data related apis
         ---------------------*/
@@ -232,22 +246,6 @@ async function run() {
         })
 
 
-        /*--------------------
-        verify role related apis
-        ---------------------*/
-
-        //verify if user is admin
-        app.get('/users/role/:email', verifyJWT, async (req, res) => {
-            const email = req.params.email;
-
-            if (req.decoded.email !== email) {
-                return res.send({ error: true, message: 'forbidden access' })
-            }
-            const query = { email: email }
-            const user = await usersCollection.findOne(query);
-            const result =user?.role;
-            res.send(result);
-        })
 
 
 
