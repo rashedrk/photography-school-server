@@ -47,6 +47,18 @@ const verifyUser = (req, res, next) => {
     next()
 }
 
+//verify admin role
+const verifyAdmin = async (req, res, next) => {
+    const email = req.decoded.email;
+    const query = { email: email };
+    const user = await usersCollection.findOne(query);
+    if (user?.role !== 'admin') {
+        return res.status(403).send({ error: true, message: 'forbidden access' })
+    }
+    req.user = user;
+    next();
+}
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qrkrfrq.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -131,18 +143,17 @@ async function run() {
 
         //add new class
         //instructor
-        app.post('/classes', verifyJWT, async(req, res) => {
-            const {newClass} = req.body;
-            console.log(newClass);
+        app.post('/classes', verifyJWT, async (req, res) => {
+            const newClass = req.body;
             const result = await classesCollection.insertOne(newClass);
             res.send(result);
         })
 
         //get added class 
         //instructor
-        app.get('/classes/instructor', verifyJWT,verifyUser, async(req, res) => {
+        app.get('/classes/instructor', verifyJWT, verifyUser, async (req, res) => {
             const email = req.email;
-            const query = {email: email};
+            const query = { email: email };
             const result = await classesCollection.find(query).toArray();
             res.send(result)
 
@@ -151,22 +162,22 @@ async function run() {
         //send feedback
         //admin
         app.patch('/classes', verifyJWT, async (req, res) => {
-            const {feedback, id} = req.body;
+            const { feedback, id } = req.body;
             const filter = { _id: new ObjectId(id) };
             const updateFeedback = {
                 $set: {
                     feedback: feedback
                 }
             }
-            
+
             const result = await classesCollection.updateOne(filter, updateFeedback);
             res.send(result);
         })
 
         //set class status
         //admin
-        app.patch('/classes/status',verifyJWT, async( req, res) => {
-            const {status, id} = req.body;
+        app.patch('/classes/status', verifyJWT, async (req, res) => {
+            const { status, id } = req.body;
             const filter = { _id: new ObjectId(id) };
             const updateStatus = {
                 $set: {
@@ -221,6 +232,22 @@ async function run() {
         })
 
 
+        /*--------------------
+        verify role related apis
+        ---------------------*/
+
+        //verify if user is admin
+        app.get('/users/role/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                return res.send({ error: true, message: 'forbidden access' })
+            }
+            const query = { email: email }
+            const user = await usersCollection.findOne(query);
+            const result =user?.role;
+            res.send(result);
+        })
 
 
 
