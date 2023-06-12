@@ -89,7 +89,7 @@ async function run() {
         const instructorsCollection = client.db("ClickMasterSchool").collection("instructors");
         const usersCollection = client.db("ClickMasterSchool").collection("users");
         const selectedClassCollection = client.db("ClickMasterSchool").collection("selectedClasses");
-
+        const paymentsCollection = client.db("ClickMasterSchool").collection("payments");
 
         /*--------------------
         user data related apis
@@ -252,7 +252,7 @@ async function run() {
         --------------------*/
 
         // payment request to stripe server 
-        app.post('/create-payment-intent',verifyJWT, async (req, res) => {
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
             const { price } = req.body;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: price * 100,
@@ -266,6 +266,29 @@ async function run() {
             })
         })
 
+        //add payment details to db
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            //remove item form selected class
+            const filter = { _id: new ObjectId(payment.selectedId) }
+            await selectedClassCollection.deleteOne(filter);
+
+            //changing available seats and enrolled number
+            //find the class
+            const query = { _id: new ObjectId(payment.classId) }
+            const selectedClass = await classesCollection.findOne(query);
+            //update the class
+            const updateClass = {
+                $set: {
+                    enrolled: selectedClass.enrolled + 1,
+                    availableSeats: selectedClass.availableSeats - 1
+                }
+            }
+            await classesCollection.updateOne(query,updateClass)
+            //add payment information
+            const result = await paymentsCollection.insertOne(payment);
+            res.send(result);
+        })
 
 
 
