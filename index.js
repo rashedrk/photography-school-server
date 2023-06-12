@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 3000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 
 // middle Ware
 app.use(cors());
@@ -133,7 +135,7 @@ async function run() {
             }
             const query = { email: email }
             const user = await usersCollection.findOne(query);
-            const result =user?.role;
+            const result = user?.role;
             res.send(result);
         })
 
@@ -245,7 +247,24 @@ async function run() {
             res.send(result);
         })
 
+        /*------------------
+        Payment related apis
+        --------------------*/
 
+        // payment request to stripe server 
+        app.post('/create-payment-intent',verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: price * 100,
+                currency: "usd",
+                "payment_method_types": [
+                    "card"
+                ],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
 
 
 
