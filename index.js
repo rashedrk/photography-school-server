@@ -284,13 +284,21 @@ async function run() {
                     availableSeats: selectedClass.availableSeats - 1
                 }
             }
-            await classesCollection.updateOne(query,updateClass)
+            await classesCollection.updateOne(query, updateClass)
             //add payment information
             const result = await paymentsCollection.insertOne(payment);
             res.send(result);
         })
 
-
+        app.get('/payments', verifyJWT, verifyUser, async (req, res) => {
+            const email = req.email;
+            const query = { email: email };
+            const options = {
+                sort: { date: -1 }
+            }
+            const result = await paymentsCollection.find(query, options).toArray();
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
