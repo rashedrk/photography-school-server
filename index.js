@@ -141,7 +141,7 @@ async function run() {
 
 
         /*--------------------
-        class data related apis
+        class related apis
         ---------------------*/
 
         // get all class data
@@ -203,6 +203,19 @@ async function run() {
             const result = await classesCollection.updateOne(filter, updateStatus);
             res.send(result);
         })
+
+        //enrolled class
+        //student / user
+        app.get('/enrolled', verifyJWT, verifyUser, async (req, res) => {
+            const email = req.email;
+            const query = { email: email };
+            const payment = await paymentsCollection.find(query).toArray();
+            const classIds = payment.map(item => new ObjectId(item.classId));
+            const result = await classesCollection.find({ _id: { $in: classIds } }).toArray();
+            res.send(result);
+        })
+
+
 
         /*--------------------
         Instructors data related apis
@@ -277,6 +290,7 @@ async function run() {
             //find the class
             const query = { _id: new ObjectId(payment.classId) }
             const selectedClass = await classesCollection.findOne(query);
+            console.log(selectedClass.enrolled);
             //update the class
             const updateClass = {
                 $set: {
@@ -290,6 +304,7 @@ async function run() {
             res.send(result);
         })
 
+        //payment history
         app.get('/payments', verifyJWT, verifyUser, async (req, res) => {
             const email = req.email;
             const query = { email: email };
@@ -299,6 +314,9 @@ async function run() {
             const result = await paymentsCollection.find(query, options).toArray();
             res.send(result);
         })
+
+
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
